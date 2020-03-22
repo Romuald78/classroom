@@ -46,17 +46,36 @@ def initVars():
 
     var.saveOK       = False
     var.hasStarted   = False
+
     # create stars
     for i in range(var.maxQuestions):
         s = createSprite("starGray.png", (27, 27), True)
         s.center_x = 11+10
         s.center_y = 11+10 + i*22
         var.stars.append(s)
+
     # fill word list
     fp = open("words2.txt", "r", encoding='utf-8')
     lines = fp.readlines()
     var.words = [x.replace("\n", "") for x in lines]
     fp.close()
+
+    # fill stats
+    var.stats = {}
+    fp = open("save_records.txt", "r", encoding='utf-8')
+    lines = fp.readlines()
+    fp.close()
+    for line in lines[1:]:
+        tab = line.replace("\n", "").split(",")
+        usr = tab[1]
+        mat = tab[2]
+        scr = tab[3]
+        tim = tab[4]
+        if usr not in var.stats.keys():
+            var.stats[usr] = {}
+        if mat not in var.stats[usr].keys():
+            var.stats[usr][mat] = []
+        var.stats[usr][mat].append((int(scr),float(tim)))
 
 def chooseUser(key,isPressed):
     if key == arcade.key.UP and isPressed:
@@ -95,15 +114,79 @@ def getRandomQuestion():
             chooseWord()
     if var.exoType == "ADDITION":
         if var.number1 == 0 and var.number2 == 0:
-            chooseNumbers(9,19)
+            chooseNumbers(10,10)
     if var.exoType == "MULTIPLICATION":
         if var.number1 == 0 and var.number2 == 0:
-            chooseNumbers(9,9)
+            chooseNumbers(10,10)
 
 def startExo(key,isPressed):
     if key == arcade.key.ENTER and isPressed and var.exoType != "" and var.userName != "":
-        var.hasStarted = True
         var.totalTime  = 0
+        var.lastQuestionTime = 0
+        var.nbFAIL = 0
+        var.nbOK = 0
+        var.hasStarted = True
+
+
+def drawStats():
+    # draw USER STATS
+    refH = 250
+    refW = 500
+    refX = SCREEN_WIDTH / 2 - 70-140
+    refY = SCREEN_HEIGHT / 2
+    # draw back
+    arcade.draw_rectangle_filled(refX + refW / 2, refY + refH / 2, refW, refH, (255, 255, 255, 16))
+    # draw grid
+    for i in range(1, 10, 1):
+        dx = i * refW / 10
+        dy = i * refH / 10
+        if i % 2 == 1:
+            # vertical secondary axe
+            arcade.draw_line(refX + dx, refY, refX + dx, refY + refH, (255, 255, 255, 24), 1)
+            # horizontal secondary axe
+            arcade.draw_line(refX, refY + dy, refX + refW, refY + dy, (255, 255, 255, 24), 1)
+        else:
+            # vertical axe
+            arcade.draw_text(str(400 - i * 40) + "s.", refX + dx, refY - 5, arcade.color.WHITE, 12, anchor_x="center",
+                             anchor_y="top", bold=True)
+            arcade.draw_line(refX + dx, refY, refX + dx, refY + refH, (255, 255, 255, 48), 1)
+            # horizontal axe
+            arcade.draw_text(str(50 + i * 5) + "%", refX - 5, refY + dy, arcade.color.WHITE, 12, anchor_x="right",
+                             anchor_y="center", bold=True)
+            arcade.draw_line(refX, refY + dy, refX + refW, refY + dy, (255, 255, 255, 48), 1)
+    # draw grid borders
+    arcade.draw_line(refX, refY, refX, refY + refH, arcade.color.WHITE, 1)
+    arcade.draw_line(refX, refY, refX + refW, refY, arcade.color.WHITE, 1)
+    # for each user
+    for usr in var.allUsers:
+        datas = var.stats[usr]
+        # for each exercice
+        for m in datas.keys():
+            ptSize = 3
+            clr = (255, 255, 255, 160)
+            if var.userName == usr:
+                ptSize = 7
+                clr = (255, 255, 255, 160)
+                if var.exoType == m:
+                    ptSize = 10
+                    clr = (255, 255, 0, 192)
+            # display all points for this user and this exercice
+            if len(datas[m]) > 0:
+                pScr = datas[m][0][0]
+                pTim = datas[m][0][1]
+            for d in datas[m]:
+                if d[0] >= 50 and d[1] <= 400:
+                    tim0 = refW * ((400 - pTim) / 400)
+                    scr0 = refH * (pScr - 50) / 50
+                    tim1 = refW * ((400 - d[1]) / 400)
+                    scr1 = refH * (d[0] - 50) / 50
+                    if var.userName == usr:
+                        clr2 = (clr[0], clr[1], clr[2], 64)
+                        arcade.draw_line(refX + tim0, refY + scr0, refX + tim1, refY + scr1, clr2, 1)
+                    arcade.draw_point(refX + tim1, refY + scr1, clr, ptSize)
+                pScr = d[0]
+                pTim = d[1]
+
 
 def updateScore(status):
     if status:
@@ -133,7 +216,8 @@ def processInGame(deltaTime):
     #choose new word/computation if not existing
     getRandomQuestion()
     # check if the current question is not too long (20sec max)
-    if var.totalTime - var.lastQuestionTime >= 20:
+    if var.totalTime - var.lastQuestionTime >= 5:
+        print("update SCORE 1")
         resetExercice()
         updateScore(False)
 
@@ -169,8 +253,10 @@ def setup():
 ### ====================================================================================================
 def update(deltaTime):
     # update ingame/results process
+
     if not isFinished():
-        processInGame(deltaTime)
+        if var.hasStarted:
+            processInGame(deltaTime)
     else:
         processResults()
     # update emitters (anytime)
@@ -191,6 +277,9 @@ def draw():
     var.background.draw()
 
     if not var.hasStarted:
+        # draw stats
+        drawStats()
+
         # draw user menu
         refX = SCREEN_WIDTH-50
         refY = SCREEN_HEIGHT-50
@@ -202,8 +291,8 @@ def draw():
                 size = 50
             arcade.draw_text(u, refX, refY-5 -(i+1)*42, arcade.color.GREEN_YELLOW, size, anchor_x="right", anchor_y="center", bold=True)
         # Draw start menu
-        refX = SCREEN_WIDTH/2
-        refY = SCREEN_HEIGHT/2
+        refX = SCREEN_WIDTH/2+50
+        refY = SCREEN_HEIGHT/2-100
         arcade.draw_text("Appuie sur ENTREE/START pour démarrer", refX, refY, arcade.color.WHITE, 30,anchor_x="center", anchor_y="center", bold=True)
         # Draw EXO menu
         refX = 50
@@ -302,6 +391,8 @@ def onButtonEvent(gamepadNum,buttonNum,isPressed):
 
     if not var.hasStarted:
         if buttonNum == 7:
+            chooseUser(arcade.key.ENTER, isPressed)
+            chooseExo(arcade.key.ENTER, isPressed)
             startExo(arcade.key.ENTER, isPressed)
 
     elif not isFinished():
@@ -337,6 +428,5 @@ def onAxisEvent(gamepadNum,axisName,analogValue):
         if k != None:
             chooseUser(k, True)
             chooseExo(k, True)
-            startExo(k, True)
 
 
