@@ -31,7 +31,6 @@ def initVars():
     var.stars        = []
 
     var.userName     = ""
-    var.allUsers     = ["EMELINE","NATHAN","ROMU","MIMI"]
     var.idxUser      = -1
 
     var.exoType      = ""
@@ -46,6 +45,13 @@ def initVars():
 
     var.saveOK       = False
     var.hasStarted   = False
+
+    # get user names
+    # var.allUsers     = ["EMELINE","NATHAN","ROMU","MIMI"]
+    fp = open("names2.txt","r")
+    lines = fp.readlines()
+    fp.close()
+    var.allUsers = [x.replace("\n", "") for x in lines]
 
     # create stars
     for i in range(var.maxQuestions):
