@@ -213,7 +213,7 @@ def updateScore(status):
     # replace star
     var.stars[idx] = new
     # create new emitter and add it
-    em = createParticleBurst(old.center_x, old.center_y, 0.005, 0.25, 100, 0.5, 4.0, arcade.color.WHITE, 100,0, spritePath)
+    em = createParticleBurst(old.center_x, old.center_y, 0.0025, 0.25, 100, 0.5, 6.0, arcade.color.WHITE, 100,0, spritePath)
     var.emitters.append(em)
 
 def processInGame(deltaTime):
@@ -222,7 +222,7 @@ def processInGame(deltaTime):
     #choose new word/computation if not existing
     getRandomQuestion()
     # check if the current question is not too long (20sec max)
-    if var.totalTime - var.lastQuestionTime >= 5:
+    if var.totalTime - var.lastQuestionTime >= 20:
         print("update SCORE 1")
         resetExercice()
         updateScore(False)
@@ -341,7 +341,7 @@ def draw():
                     arcade.draw_text(formula, refX, refY, arcade.color.WHITE, 140, anchor_x="center", anchor_y="center", bold=True)
             # draw current question timer bar
             ratio = 360*(var.totalTime-var.lastQuestionTime)/20
-            clr = (int(255*ratio/360),255-int(255*ratio/360),0,210)
+            clr = (int(255*ratio/360),255-int(255*ratio/360),0,225)
             refX = SCREEN_WIDTH/2 - 240
             refY = SCREEN_HEIGHT/2
             arcade.draw_arc_filled(refX, refY, 60, 60,(0,0,0,48), 0, 360, 90)
